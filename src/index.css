@@ -1,0 +1,17 @@
+/* stylelint-disable at-rule-no-unknown */
+
+/* Tailwind's base styles */
+@tailwind base;
+
+/* Component classes */
+@tailwind components;
+
+/* Utility classes */
+@tailwind utilities;
+
+/* stylelint-enable at-rule-no-unknown */
+
+/* Custom styles can be added below */
+:root {
+  /* Add custom CSS variables here if needed */
+}
