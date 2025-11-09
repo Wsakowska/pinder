@@ -200,9 +200,10 @@ npm run build
 ```
 
 ### Połączenie z backendem
-
-!Do polaczenia z backendem sluzy plik /src/api/realAuth.ts! (obecnie uzywany jest mock do fake logowania i swipeowania)
-
+--
+! Do polaczenia z backendem sluzy plik /src/api/realAuth.ts (obecnie uzywany jest mock do fake logowania i swipeowania)
+Nalezy zmienic nazwe realAuth.ts na auth.ts i zmienic nazwe obecnego mocka na inna w celu dodania backendu.
+--
 Do rozważenia:
 #### Opcja A: **Osobne serwery (development)**
 - Backend: `http://localhost:8080`
