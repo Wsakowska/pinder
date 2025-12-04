@@ -4,6 +4,8 @@ import com.beerfinder.dto.ProfileResponse;
 import com.beerfinder.dto.UpdateProfileRequest;
 import com.beerfinder.entity.Profile;
 import com.beerfinder.entity.User;
+import com.beerfinder.exception.ResourceNotFoundException;
+import com.beerfinder.exception.UnauthorizedException;
 import com.beerfinder.repository.ProfileRepository;
 import com.beerfinder.repository.UserRepository;
 import org.springframework.security.core.Authentication;
@@ -30,7 +32,7 @@ public class ProfileService {
         User currentUser = getCurrentUser();
 
         Profile profile = profileRepository.findByUser(currentUser)
-                .orElseThrow(() -> new RuntimeException("Profile not found for current user"));
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found for current user"));
 
         return ProfileResponse.fromEntity(profile);
     }
@@ -39,7 +41,7 @@ public class ProfileService {
         User currentUser = getCurrentUser();
 
         Profile profile = profileRepository.findByUser(currentUser)
-                .orElseThrow(() -> new RuntimeException("Profile not found for current user"));
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found for current user"));
 
         profile.setName(request.getName());
         profile.setAge(request.getAge());
@@ -68,12 +70,12 @@ public class ProfileService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         if (auth == null || !auth.isAuthenticated()) {
-            throw new RuntimeException("No authenticated user found");
+            throw new UnauthorizedException("No authenticated user found");
         }
 
         String email = auth.getName();
 
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
     }
 }
