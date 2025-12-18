@@ -62,14 +62,35 @@ public class UserController {
         return ResponseEntity.ok(updated);
     }
 
-    @Operation(summary = "Discover profiles", description = "Get list of profiles available for swiping")
+    @Operation(
+            summary = "Discover profiles with filters",
+            description = "Get list of profiles available for swiping with optional filters for age and distance"
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Profiles retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @GetMapping("/discover")
-    public ResponseEntity<List<ProfileResponse>> discoverProfiles() {
-        List<ProfileResponse> profiles = profileService.discoverProfiles();
+    public ResponseEntity<List<ProfileResponse>> discoverProfiles(
+            @Parameter(description = "Minimum age (e.g., 21)")
+            @RequestParam(required = false) Integer minAge,
+
+            @Parameter(description = "Maximum age (e.g., 30)")
+            @RequestParam(required = false) Integer maxAge,
+
+            @Parameter(description = "Maximum distance in kilometers (e.g., 10)")
+            @RequestParam(required = false) Integer maxDistance
+    ) {
+        List<ProfileResponse> profiles;
+
+        // Jeśli są jakiekolwiek filtry, użyj metody z filtrami
+        if (minAge != null || maxAge != null || maxDistance != null) {
+            profiles = profileService.discoverProfilesWithFilters(minAge, maxAge, maxDistance);
+        } else {
+            // Bez filtrów - użyj prostej metody
+            profiles = profileService.discoverProfiles();
+        }
+
         return ResponseEntity.ok(profiles);
     }
 

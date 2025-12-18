@@ -25,4 +25,23 @@ public interface ProfileRepository extends JpaRepository<Profile, Long> {
            )
            """)
     List<Profile> findDiscoverProfiles(@Param("user") User user);
+
+    // Discover z filtrowaniem po wieku
+    @Query("""
+           SELECT p
+           FROM Profile p
+           WHERE p.user <> :user
+             AND p.user.id NOT IN (
+                 SELECT s.swiped.id
+                 FROM Swipe s
+                 WHERE s.swiper = :user
+           )
+             AND (:minAge IS NULL OR p.age >= :minAge)
+             AND (:maxAge IS NULL OR p.age <= :maxAge)
+           """)
+    List<Profile> findDiscoverProfilesWithFilters(
+            @Param("user") User user,
+            @Param("minAge") Integer minAge,
+            @Param("maxAge") Integer maxAge
+    );
 }

@@ -8,6 +8,7 @@ import com.beerfinder.exception.ResourceNotFoundException;
 import com.beerfinder.exception.UnauthorizedException;
 import com.beerfinder.repository.ProfileRepository;
 import com.beerfinder.repository.UserRepository;
+import com.beerfinder.util.GeoUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -22,15 +24,16 @@ public class ProfileService {
 
     private final ProfileRepository profileRepository;
     private final UserRepository userRepository;
-    private final CloudinaryService cloudinaryService;  // ⬅️ DODAJ
+    private final CloudinaryService cloudinaryService;
 
     public ProfileService(ProfileRepository profileRepository,
                           UserRepository userRepository,
-                          CloudinaryService cloudinaryService) {  // ⬅️ DODAJ
+                          CloudinaryService cloudinaryService) {
         this.profileRepository = profileRepository;
         this.userRepository = userRepository;
-        this.cloudinaryService = cloudinaryService;  // ⬅️ DODAJ
+        this.cloudinaryService = cloudinaryService;
     }
+
     public ProfileResponse getMyProfile() {
         User currentUser = getCurrentUser();
 
@@ -69,17 +72,50 @@ public class ProfileService {
                 .toList();
     }
 
-    private User getCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    /**
+     * Discover profiles with filters (age, distance)
+     *
+     * @param minAge      Minimum age filter (optional)
+     * @param maxAge      Maximum age filter (optional)
+     * @param maxDistance Maximum distance in km (optional)
+     * @return List of filtered profiles
+     */
+    public List<ProfileResponse> discoverProfilesWithFilters(Integer minAge, Integer maxAge, Integer maxDistance) {
+        User currentUser = getCurrentUser();
+        Profile currentUserProfile = currentUser.getProfile();
 
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new UnauthorizedException("No authenticated user found");
+        // Pobierz profile z filtrem wieku
+        List<Profile> profiles = profileRepository.findDiscoverProfilesWithFilters(
+                currentUser,
+                minAge,
+                maxAge
+        );
+
+        // Jeśli jest filtr odległości, zastosuj go
+        if (maxDistance != null && currentUserProfile.getLatitude() != null && currentUserProfile.getLongitude() != null) {
+            profiles = profiles.stream()
+                    .filter(profile -> {
+                        // Jeśli profil nie ma lokalizacji, pomiń go
+                        if (profile.getLatitude() == null || profile.getLongitude() == null) {
+                            return false;
+                        }
+
+                        // Oblicz dystans
+                        double distance = GeoUtils.calculateDistance(
+                                currentUserProfile.getLatitude(),
+                                currentUserProfile.getLongitude(),
+                                profile.getLatitude(),
+                                profile.getLongitude()
+                        );
+
+                        return distance <= maxDistance;
+                    })
+                    .collect(Collectors.toList());
         }
 
-        String email = auth.getName();
-
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+        return profiles.stream()
+                .map(ProfileResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -126,5 +162,18 @@ public class ProfileService {
 
         profile.setProfilePhoto(null);
         profileRepository.save(profile);
+    }
+
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new UnauthorizedException("No authenticated user found");
+        }
+
+        String email = auth.getName();
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
     }
 }
