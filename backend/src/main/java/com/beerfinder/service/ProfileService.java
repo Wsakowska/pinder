@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -21,13 +22,15 @@ public class ProfileService {
 
     private final ProfileRepository profileRepository;
     private final UserRepository userRepository;
+    private final CloudinaryService cloudinaryService;  // ⬅️ DODAJ
 
     public ProfileService(ProfileRepository profileRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          CloudinaryService cloudinaryService) {  // ⬅️ DODAJ
         this.profileRepository = profileRepository;
         this.userRepository = userRepository;
+        this.cloudinaryService = cloudinaryService;  // ⬅️ DODAJ
     }
-
     public ProfileResponse getMyProfile() {
         User currentUser = getCurrentUser();
 
@@ -77,5 +80,51 @@ public class ProfileService {
 
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+    }
+
+    /**
+     * Aktualizuje zdjęcie profilowe użytkownika
+     */
+    public void updateProfilePhoto(String photoUrl) {
+        User currentUser = getCurrentUser();
+
+        Profile profile = profileRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found for current user"));
+
+        // Jeśli użytkownik już ma zdjęcie, usuń stare z Cloudinary
+        if (profile.getProfilePhoto() != null && profile.getProfilePhoto().contains("cloudinary")) {
+            try {
+                String publicId = cloudinaryService.extractPublicId(profile.getProfilePhoto());
+                if (publicId != null) {
+                    cloudinaryService.deleteImage(publicId);
+                }
+            } catch (IOException e) {
+                // Log error but continue - old photo stays in Cloudinary
+                System.err.println("Failed to delete old photo: " + e.getMessage());
+            }
+        }
+
+        profile.setProfilePhoto(photoUrl);
+        profileRepository.save(profile);
+    }
+
+    /**
+     * Usuwa zdjęcie profilowe użytkownika
+     */
+    public void deleteProfilePhoto() throws IOException {
+        User currentUser = getCurrentUser();
+
+        Profile profile = profileRepository.findByUser(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found for current user"));
+
+        if (profile.getProfilePhoto() != null && profile.getProfilePhoto().contains("cloudinary")) {
+            String publicId = cloudinaryService.extractPublicId(profile.getProfilePhoto());
+            if (publicId != null) {
+                cloudinaryService.deleteImage(publicId);
+            }
+        }
+
+        profile.setProfilePhoto(null);
+        profileRepository.save(profile);
     }
 }
