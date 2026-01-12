@@ -1,5 +1,5 @@
 export interface Profile {
-  id: number;
+  id: string;
   name: string;
   age: number;
   bio: string;
@@ -7,4 +7,5 @@ export interface Profile {
   interests: string[];
   profilePhoto?: string;
   distance: number;
+  likedUs?: boolean;
 }
