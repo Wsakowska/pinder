@@ -1,4 +1,4 @@
-import type { LoginRequest, RegisterRequest, AuthResponse } from '../types/auth';
+import type { LoginRequest, RegisterRequest, AuthResponse } from '../types/auth.ts';
 
 const API_BASE = 'http://localhost:8080/api/auth'; // Zmień na swój backend
 

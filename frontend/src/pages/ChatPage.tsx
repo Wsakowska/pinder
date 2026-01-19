@@ -1,9 +1,9 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { mockProfiles } from '../data/mockProfiles';
-import { mockMessages } from '../data/mockMessages';
+import { mockProfiles } from '../data/mockProfiles.ts';
+import { mockMessages } from '../data/mockMessages.ts';
 import { LogOut, ArrowLeft, Send, Menu, X, Home } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { ChatMenu } from '../components/ChatMenu';
+import { ChatMenu } from '../components/ChatMenu.tsx';
 
 interface Message {
   id: string;

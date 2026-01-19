@@ -1,8 +1,8 @@
 // src/pages/DashboardPage.tsx
 import { useState, useEffect } from 'react';
-import { mockProfiles } from '../data/mockProfiles';
-import type { Profile } from '../types/profile';
-import SwipeCard from '../components/SwipeCard';
+import { mockProfiles } from '../data/mockProfiles.ts';
+import type { Profile } from '../types/profile.ts';
+import SwipeCard from '../components/SwipeCard.tsx';
 import { Beer, LogOut, User, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 

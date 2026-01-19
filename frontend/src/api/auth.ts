@@ -1,5 +1,5 @@
 // src/api/auth.ts
-import type { LoginRequest, RegisterRequest, AuthResponse } from '../types/auth';
+import type { LoginRequest, RegisterRequest, AuthResponse } from '../types/auth.ts';
 
 // FAKE TOKEN (dla mocków)
 const FAKE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock';

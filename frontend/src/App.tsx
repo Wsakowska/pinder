@@ -1,11 +1,11 @@
 // src/App.tsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
-import ChatMenuPage from './pages/ChatMenuPage';
-import ChatPage from './pages/ChatPage';
-import EditProfilePage from './pages/EditProfilePage';
+import LoginPage from './pages/LoginPage.tsx';
+import RegisterPage from './pages/RegisterPage.tsx';
+import DashboardPage from './pages/DashboardPage.tsx';
+import ChatMenuPage from './pages/ChatMenuPage.tsx';
+import ChatPage from './pages/ChatPage.tsx';
+import EditProfilePage from './pages/EditProfilePage.tsx';
 
 function App() {
   const token = localStorage.getItem('token');

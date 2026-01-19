@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { authApi } from '../api/auth';
+import { authApi } from '../api/auth.ts';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function LoginForm() {

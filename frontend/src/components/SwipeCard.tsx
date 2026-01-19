@@ -1,5 +1,5 @@
 // src/components/SwipeCard.tsx
-import type { Profile } from '../types/profile';
+import type { Profile } from '../types/profile.ts';
 import { X, Beer } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';

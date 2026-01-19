@@ -1,5 +1,5 @@
 // src/data/mockProfiles.ts
-import type { Profile } from '../types/profile';
+import type { Profile } from '../types/profile.ts';
 
 export const mockProfiles: Profile[] = [
   {

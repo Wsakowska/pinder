@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { mockProfiles } from '../data/mockProfiles';
-import { ChatMenu } from '../components/ChatMenu';
+import { mockProfiles } from '../data/mockProfiles.ts';
+import { ChatMenu } from '../components/ChatMenu.tsx';
 import { LogOut, MessageCircle, Home } from 'lucide-react';
 
 export default function ChatMenuPage() {

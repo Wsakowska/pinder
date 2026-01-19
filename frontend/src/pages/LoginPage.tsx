@@ -1,5 +1,5 @@
-import LoginForm from '../components/LoginForm';
-import AuthLayout from '../components/AuthLayout';
+import LoginForm from '../components/LoginForm.tsx';
+import AuthLayout from '../components/AuthLayout.tsx';
 
 export function LoginPage() {
   return (

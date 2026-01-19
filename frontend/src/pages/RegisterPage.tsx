@@ -1,5 +1,5 @@
-import RegisterForm from '../components/RegisterForm';
-import AuthLayout from '../components/AuthLayout';
+import RegisterForm from '../components/RegisterForm.tsx';
+import AuthLayout from '../components/AuthLayout.tsx';
 
 export function RegisterPage() {
   return (

@@ -1,8 +1,8 @@
 // src/pages/TestPage.tsx
 import { useEffect, useState } from 'react';
-import { authApi } from '../api/auth';
+import { authApi } from '../api/auth.ts';
 import { useNavigate } from 'react-router-dom';
-import AuthLayout from '../components/AuthLayout';
+import AuthLayout from '../components/AuthLayout.tsx';
 
 export default function TestPage() {
   const [message, setMessage] = useState<string | null>(null);
