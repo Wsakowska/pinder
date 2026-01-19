@@ -1,313 +1,245 @@
-```markdown
-# Beer Finder — Backend
 
-Beer Finder to aplikacja webowa umożliwiająca znajdowanie towarzystwa na spontaniczne wyjście na piwo.  
-Backend odpowiada za rejestrację użytkowników, autentykację JWT, zarządzanie profilami, wyszukiwaniem użytkowników oraz podstawy mechanizmu matchowania.
+
+# BeerFinder – Frontend (Vite + React + TypeScript + Tailwind CSS)
+
+## Dokumentacja projektu
 
 ---
 
 ## Spis treści
-- [Opis projektu](#opis-projektu)
-- [Stack technologiczny](#stack-technologiczny)
-- [Funkcjonalności](#funkcjonalności)
-- [Architektura](#architektura)
-- [Modele danych](#modele-danych)
-- [API](#api)
-- [Instalacja i uruchomienie](#instalacja-i-uruchomienie)
-- [Struktura projektu](#struktura-projektu)
-- [Postęp prac](#postęp-prac)
-- [Planowane funkcje](#planowane-funkcje)
+
+1. [Opis projektu](#opis-projektu)  
+2. [Technologie](#technologie)  
+3. [Struktura projektu](#struktura-projektu)  
+4. [Instalacja i uruchomienie](#instalacja-i-uruchomienie)  
+5. [Konfiguracja](#konfiguracja)  
+6. [Endpointy API](#endpointy-api)  
+7. [Funkcjonalności](#funkcjonalności)  
+8. [Stylizacja (Tailwind)](#stylizacja-tailwind)  
+9. [Bezpieczeństwo i tokeny](#bezpieczeństwo-i-tokeny)  
+10. [Rozwój i produkcja](#rozwój-i-produkcja)  
+11. [Rozwiązywanie problemów](#rozwiązywanie-problemów)
+---
+<a name="Opis projektu"></a>
+
+## 1. Opis projektu
+piwo + tinder 😼
+
+
+
+<a name="technologie"></a>
+## 2. Technologie
+
+| Technologia         | Wersja       | Opis |
+|---------------------|--------------|------|
+| Vite                | `^5.0.0`     | Szybki build tool |
+| React               | `^18.2.0`    | Biblioteka UI |
+| TypeScript          | `^5.0.0`     | Typowanie |
+| Tailwind CSS        | `^3.4.0`     | Stylizacja utility-first |
+| React Router        | `^6.20.0`    | Nawigacja |
+| Fetch API           | natywny      | Komunikacja HTTP |
 
 ---
 
-## Opis projektu
-
-Beer Finder łączy mechanizm swipowania profili (podobny do Tindera) z ideą spotkań towarzyskich.  
-Użytkownicy mogą:
-- tworzyć konto,
-- uzupełniać swój profil,
-- przeglądać inne profile,
-- oznaczać je jako „like” lub „pass”,
-- po wzajemnym „like” otrzymywać match i rozpoczynać rozmowę (planowane).
-
-Backend realizuje całą logikę biznesową oraz interakcję z bazą danych.
-
----
-
-## Stack technologiczny
-
-**Backend**
-- Java 17
-- Spring Boot 3.5.x
-- Spring Security (JWT)
-- Spring Data JPA (Hibernate)
-- PostgreSQL
-- Maven
-- Lombok
-
----
-
-## Funkcjonalności
-
-### Zaimplementowane
-- rejestracja użytkownika,
-- logowanie z generowaniem JWT,
-- automatyczne tworzenie profilu przy rejestracji,
-- pobieranie profilu zalogowanego użytkownika (`GET /api/users/me`),
-- edycja profilu (`PUT /api/users/profile`),
-- lista profili do swipowania (discover),
-- pełna konfiguracja bezpieczeństwa (JWT filter, AuthenticationProvider itd.).
-
-### W trakcie implementacji
-- logika swipowania (like/pass),
-- wykrywanie matcha.
-
-### Planowane
-- czat w czasie rzeczywistym (WebSocket),
-- system grupowy,
-- filtrowanie po lokalizacji,
-- upload zdjęć (Cloudinary),
-- testy jednostkowe i integracyjne.
-
----
-
-## Architektura
-
-Projekt wykorzystuje architekturę warstwową:
+<a name="struktura-projektu"></a>
+## 3. Struktura projektu
 
 ```
-
-controller → service → repository → entity
-
-```
-
-Warstwy:
-- **Controller** – ekspozycja REST API,
-- **Service** – logika biznesowa,
-- **Repository** – operacje na bazie (JPA),
-- **Entity** – model danych,
-- **Security** – konfiguracja JWT i Spring Security.
-
----
-
-## Modele danych
-
-### User
-- id  
-- email  
-- passwordHash  
-- createdAt  
-- updatedAt  
-Relacja: One-to-One z Profile
-
-### Profile
-- id  
-- userId  
-- name  
-- age  
-- bio  
-- occupation  
-- interests (lista stringów)  
-- latitude, longitude  
-- profilePhoto  
-- createdAt, updatedAt  
-
-### Swipe
-- id  
-- swiperId  
-- swipedId  
-- action: LIKE / PASS  
-- createdAt  
-
-### Match
-- id  
-- user1Id  
-- user2Id  
-- isActive  
-- createdAt  
-
----
-
-## API
-
-### Endpointy publiczne
-
-#### Health check
-```
-
-GET /api/health
-
-```
-
-#### Rejestracja
-```
-
-POST /api/auth/register
-Content-Type: application/json
-
-````
-Body:
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-````
-
-#### Logowanie
-
-```
-POST /api/auth/login
-```
-
-Body:
-
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
-
-Odpowiedź zawiera JWT token.
-
----
-
-### Endpointy wymagające autoryzacji
-
-Nagłówek:
-
-```
-Authorization: Bearer <token>
-```
-
-#### Pobranie własnego profilu
-
-```
-GET /api/users/me
-```
-
-#### Aktualizacja profilu
-
-```
-PUT /api/users/profile
-```
-
-Przykładowe body:
-
-```json
-{
-  "name": "Wiktoria",
-  "age": 21,
-  "bio": "Lubię backend",
-  "occupation": "Student",
-  "interests": ["sport", "piwo"],
-  "latitude": 54.35,
-  "longitude": 18.64,
-  "profilePhoto": "https://example.com/photo.jpg"
-}
-```
-
-#### Lista profili do „discover”
-
-```
-GET /api/users/discover
+src/
+├── api/
+│   └── auth.ts                  # Zapytania do /api/auth
+├── components/
+│   ├── AuthLayout.tsx           # Wspólny layout (logo, karta)
+│   ├── LoginForm.tsx            # Formularz logowania
+│   └── RegisterForm.tsx         # Formularz rejestracji
+├── pages/
+│   ├── LoginPage.tsx            # Strona /login
+│   ├── RegisterPage.tsx         # Strona /register
+│   └── TestPage.tsx             # Strona /test (chroniona)
+├── types/
+│   └── auth.ts                  # Typy DTO (LoginRequest, AuthResponse)
+├── App.tsx                      # Router główny
+├── main.tsx                     # Entry point
+└── index.css                    # Dyrektywy Tailwind (@tailwind)
 ```
 
 ---
 
-## Instalacja i uruchomienie
+<a name="instalacja-i-uruchomienie"></a>
+## 4. Instalacja i uruchomienie
 
 ### Wymagania
+- Node.js ≥ 18
+- npm ≥ 9
 
-* Java 17+
-* PostgreSQL 15+
-* Maven 3.8+
-
-### 1. Uruchom PostgreSQL (np. Docker)
+### Krok po kroku
 
 ```bash
-docker run --name beerfinder-db \
-  -e POSTGRES_DB=beer_finder \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=password \
-  -p 5432:5432 \
-  -d postgres:15
+# 1. Sklonuj lub skopiuj projekt
+git clone <repo> beer-finder-frontend
+cd beer-finder-frontend
+
+# 2. Zainstaluj zależności
+npm install
+
+# 3. Zainstaluj Tailwind + Lucide
+npm install -D tailwindcss postcss autoprefixer
+npm install lucide-react
+
+# 4. Utwórz pliki konfiguracyjne
+npx tailwindcss init -p
+
+# 5. Utwórz plik .env
+echo "VITE_API_URL=http://localhost:8080/api/auth" > .env
+
+# 6. Uruchom serwer deweloperski
+npm run dev
 ```
 
-### 2. Uruchom backend
+Dostęp: [http://localhost:5173](http://localhost:5173)
+
+---
+
+<a name="konfiguracja"></a>
+## 5. Konfiguracja
+
+### Pliki konfiguracyjne
+
+| Plik                | Opis |
+|---------------------|------|
+| `tailwind.config.js` | Ścieżki do plików z klasami Tailwind |
+| `postcss.config.js`  | Wtyczki PostCSS (Tailwind + Autoprefixer) |
+| `.env`               | URL backendu (`VITE_API_URL`) |
+| `vite.config.ts`     | (opcjonalnie) proxy dla `/api` |
+
+#### Przykład `.env`
+
+```env
+VITE_API_URL=http://localhost:8080/api/auth
+```
+
+> **Uwaga:** Zmienne środowiskowe w Vite muszą zaczynać się od `VITE_`.
+
+---
+
+<a name="endpointy-api"></a>
+## 6. Endpointy API
+
+| Metoda | Ścieżka               | Ciało               | Opis |
+|--------|-----------------------|---------------------|------|
+| `POST` | `/api/auth/register`  | `RegisterRequest`   | Rejestracja użytkownika |
+| `POST` | `/api/auth/login`     | `LoginRequest`      | Logowanie |
+| `GET`  | `/api/auth/test`      | –                   | Test połączenia (wymaga tokenu) |
+|        | `/api/auth/dashboard` | –                   | strona do swipeowania |
+
+---
+
+<a name="funkcjonalności"></a>
+## 7. Funkcjonalności
+
+| Funkcja             | Opis |
+|---------------------|------|
+| Rejestracja         | Email, hasło, imię i wiek (opcjonalne) |
+| Logowanie           | Email + hasło |
+| Test połączenia     | `/test` – sprawdza ważność tokenu |
+| Wylogowanie         | Czyści `localStorage` |
+| Walidacja formularzy| Klient + serwer (błędy w czerwonych ramkach) |
+| Responsywność       | Działa na telefonach i tabletach |
+| testy logowanie + swipeowanie | uzywa mocka do logowania i swipeowania |
+
+---
+
+<a name="stylizacja-tailwind"></a>
+## 8. Stylizacja (Tailwind CSS)
+
+### Kolorystyka
+- **Główny kolor**: `amber-600` (kolor piwa)
+- **Tło gradientowe**: `from-amber-50 to-orange-100`
+- **Karta**: biała z cieniem (`shadow-xl`)
+
+### Komponenty
+- **Przyciski**: `bg-amber-600 hover:bg-amber-700 text-white rounded-md`
+- **Inputy**: `border-gray-300 focus:ring-amber-500 focus:border-amber-500`
+- **Komunikaty**: 
+  - Sukces: `bg-green-50 text-green-700`
+  - Błąd: `bg-red-50 text-red-600`
+
+---
+
+<a name="bezpieczeństwo-i-tokeny"></a>
+## 9. Bezpieczeństwo i tokeny
+
+- Token JWT przechowywany w `localStorage`
+- Dodawany jako nagłówek:
+  ```ts
+  Authorization: Bearer <token>
+  ```
+- Strona `/test` wymaga zalogowania – w przypadku błędu 401 przekierowuje do `/login`
+
+```ts
+localStorage.setItem('token', data.token);
+```
+
+---
+
+<a name="rozwój-i-produkcja"></a>
+## 10. Rozwój i produkcja
+
+### Tryb deweloperski
 
 ```bash
-./mvnw spring-boot:run
+npm run dev
+→ http://localhost:5173
 ```
 
-lub w IntelliJ: `BeerfinderApplication.java`
+### Budowanie do produkcji
 
-Aplikacja działa pod:
-`http://localhost:8080`
+```bash
+npm run build
+→ folder dist/
+```
+
+### Połączenie z backendem
+--
+! Do polaczenia z backendem sluzy plik /src/api/realAuth.ts (obecnie uzywany jest mock do fake logowania i swipeowania)
+Nalezy zmienic nazwe realAuth.ts na auth.ts i zmienic nazwe obecnego mocka na inna w celu dodania backendu.
+--
+Do rozważenia:
+#### Opcja A: **Osobne serwery (development)**
+- Backend: `http://localhost:8080`
+- Frontend: `http://localhost:5173`
+- **Wymagany CORS w backendzie**
+
+#### Opcja B: **Statyczne pliki w backendzie (production)**
+
+```bash
+# 1. Zbuduj frontend
+npm run build
+
+# 2. Skopiuj dist/ → backend/src/main/resources/static/
+# 3. Zmień API_BASE w kodzie:
+const API_BASE = '/api/auth';
+```
+
+→ Całość dostępna na `http://localhost:8080`
 
 ---
 
-## Struktura projektu
+<a name="rozwiązywanie-problemów"></a>
+## 11. Rozwiązywanie częstych problemów
 
-```
-src/main/java/com/beerfinder/
-├── config/                  # Konfiguracja bezpieczeństwa
-├── controller/              # REST API
-├── dto/                     # Obiekty żądań i odpowiedzi
-├── entity/                  # Encje JPA
-├── repository/              # Repozytoria JPA
-├── security/                # JWT, filtry, UserDetailsService
-├── service/                 # Logika biznesowa
-└── BeerfinderApplication     # Klasa startowa
-```
+| Problem                        | Rozwiązanie |
+|-------------------------------|-------------|
+| Brak stylów                   | Sprawdź `import './index.css'` w `main.tsx` |
+| Błąd CORS                     | Dodaj `CorsConfig.java` w backendzie |
+| `npx tailwindcss init` nie działa | Ręcznie utwórz `tailwind.config.js` |
+| Token nie działa              | Sprawdź `localStorage` w DevTools |
+| Błąd 401 na `/test`           | Zaloguj się ponownie |
 
----
 
-## Postęp prac
 
-### Sprint 1 – Fundament (zakończony)
 
-* konfiguracja projektu i bazy,
-* encje: User, Profile, Swipe, Match,
-* konfiguracja JWT i bezpieczeństwa.
 
-### Sprint 2 – Autentykacja (zakończony)
 
-* rejestracja i logowanie,
-* generowanie JWT,
-* automatyczne tworzenie profilu.
-
-### Sprint 3 – Profile użytkownika (w trakcie)
-
-* pobieranie profilu,
-* edycja profilu,
-* discover użytkowników.
-
-### Sprint 4 – Swipowanie (planowany)
-
-* endpoint POST /api/swipes,
-* algorytm matchowania.
-
-### Sprint 5 – Chat (planowany)
-
-### Sprint 6 – Funkcje dodatkowe (planowane)
-
-* grupy,
-* geolokalizacja,
-* propozycje miejsc.
-
----
-
-## Planowane funkcje
-
-* WebSocket chat
-* zarządzanie matchami
-* filtrowanie po lokalizacji
-* rekomendacje miejsc (Google Maps API)
-* testy jednostkowe i integracyjne
-* Docker Compose (backend + baza)
-
----
-
-```
+*doc ver 1.0*
+*\>\^. , .\^<*
