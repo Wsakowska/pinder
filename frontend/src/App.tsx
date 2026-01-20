@@ -1,40 +1,70 @@
-// src/App.tsx
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import LoginPage from './pages/LoginPage.tsx';
-import RegisterPage from './pages/RegisterPage.tsx';
-import DashboardPage from './pages/DashboardPage.tsx';
-import ChatMenuPage from './pages/ChatMenuPage.tsx';
-import ChatPage from './pages/ChatPage.tsx';
-import EditProfilePage from './pages/EditProfilePage.tsx';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
+import EditProfilePage from './pages/EditProfilePage';
+import MatchesPage from './pages/MatchesPage';
+import ChatPage from './pages/ChatPage';
+
+// Protected Route wrapper
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        return <Navigate to="/login" replace />;
+    }
+
+    return <>{children}</>;
+}
 
 function App() {
-  const token = localStorage.getItem('token');
+    return (
+        <BrowserRouter>
+            <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
 
-  return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route
-          path="/dashboard"
-          element={token ? <DashboardPage /> : <Navigate to="/login" replace />}
-        />
-        <Route
-          path="/messages"
-          element={token ? <ChatMenuPage /> : <Navigate to="/login" replace />}
-        />
-        <Route
-          path="/chat/:id"
-          element={token ? <ChatPage /> : <Navigate to="/login" replace />}
-        />
-        <Route
-          path="/edit-profile"
-          element={token ? <EditProfilePage /> : <Navigate to="/login" replace />}
-        />
-        <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} replace />} />
-      </Routes>
-    </Router>
-  );
+                {/* Protected routes */}
+                <Route
+                    path="/dashboard"
+                    element={
+                        <ProtectedRoute>
+                            <DashboardPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/edit-profile"
+                    element={
+                        <ProtectedRoute>
+                            <EditProfilePage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/matches"
+                    element={
+                        <ProtectedRoute>
+                            <MatchesPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/chat/:matchId"
+                    element={
+                        <ProtectedRoute>
+                            <ChatPage />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Default redirect */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+        </BrowserRouter>
+    );
 }
 
 export default App;

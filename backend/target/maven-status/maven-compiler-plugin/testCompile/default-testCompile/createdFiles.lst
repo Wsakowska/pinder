@@ -1,0 +1,16 @@
+com/beerfinder/repository/ProfileRepositoryTest.class
+com/beerfinder/service/AuthServiceTest.class
+com/beerfinder/controller/SwipeControllerTest.class
+com/beerfinder/service/MessageServiceTest.class
+com/beerfinder/repository/UserRepositoryTest.class
+com/beerfinder/repository/SwipeRepositoryTest.class
+com/beerfinder/controller/MessageControllerTest.class
+com/beerfinder/controller/AuthControllerTest.class
+com/beerfinder/controller/UserControllerTest.class
+com/beerfinder/service/MatchServiceTest.class
+com/beerfinder/service/SwipeServiceTest.class
+com/beerfinder/util/TestDataFactory.class
+com/beerfinder/security/JwtAuthenticationFilterTest.class
+com/beerfinder/security/JwtUtilTest.class
+com/beerfinder/service/ProfileServiceTest.class
+com/beerfinder/controller/MatchControllerTest.class

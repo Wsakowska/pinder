@@ -1,187 +1,229 @@
+import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { mockProfiles } from '../data/mockProfiles.ts';
-import { mockMessages } from '../data/mockMessages.ts';
-import { LogOut, ArrowLeft, Send, Menu, X, Home } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { ChatMenu } from '../components/ChatMenu.tsx';
-
-interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'other';
-  timestamp: Date;
-}
+import { matchApi, messageApi, profileApi } from '../api/api';
+import { Message, Match, Profile } from '../types/types';
+import { ArrowLeft, Send } from 'lucide-react';
 
 export default function ChatPage() {
-  const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+    const { matchId: matchIdParam } = useParams<{ matchId: string }>();
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [match, setMatch] = useState<Match | null>(null);
+    const [myProfile, setMyProfile] = useState<Profile | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [sending, setSending] = useState(false);
+    const navigate = useNavigate();
 
-  const profile = mockProfiles.find((p) => p.id === id);
+    const matchId = matchIdParam ? parseInt(matchIdParam, 10) : NaN;
 
-  // Update messages when the id changes
-  useEffect(() => {
-    const conversation = mockMessages.find((c) => c.profileId === id);
-    setMessages(conversation?.messages || []);
-  }, [id]);
+    useEffect(() => {
+        if (!isNaN(matchId)) {
+            loadData();
+        } else {
+            console.error('Invalid matchId:', matchIdParam);
+            setLoading(false);
+        }
+    }, [matchId]);
 
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
-          <h2 className="text-2xl font-bold text-gray-800">Chat not found</h2>
-        </div>
-      </div>
-    );
-  }
+    const loadData = async () => {
+        if (isNaN(matchId)) return;
 
-  const handleSendMessage = () => {
-    if (inputValue.trim()) {
-      setMessages([
-        ...messages,
-        {
-          id: Date.now().toString(),
-          text: inputValue,
-          sender: 'user',
-          timestamp: new Date(),
-        },
-      ]);
-      setInputValue('');
+        try {
+            console.log('Loading chat for matchId:', matchId);
+
+            const [matchData, messagesData, profileData] = await Promise.all([
+                matchApi.getMatch(matchId),
+                messageApi.getMessages(matchId),
+                profileApi.getMyProfile()
+            ]);
+
+            console.log('Match data:', matchData);
+            console.log('Messages data:', messagesData);
+
+            setMatch(matchData);
+            setMessages(messagesData);
+            setMyProfile(profileData);
+        } catch (err) {
+            console.error('Failed to load chat:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSend = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!newMessage.trim() || isNaN(matchId) || sending) return;
+
+        setSending(true);
+
+        try {
+            const message = await messageApi.sendMessage(matchId, newMessage.trim());
+            console.log('Sent message:', message);
+            setMessages([...messages, message]);
+            setNewMessage('');
+        } catch (err) {
+            console.error('Failed to send message:', err);
+        } finally {
+            setSending(false);
+        }
+    };
+
+    // Helper function to format time safely
+    const formatTime = (dateString: string) => {
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return 'Just now';
+            }
+            return date.toLocaleTimeString('pl-PL', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch {
+            return 'Just now';
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
+                <div className="text-2xl font-bold text-amber-800">Loading...</div>
+            </div>
+        );
     }
-  };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
-
-  // Convert profiles to chat format for sidebar
-  const chats = mockProfiles.map((profile) => ({
-    id: profile.id,
-    name: profile.name,
-    lastMessage: `Hey! I'm ${profile.name}`,
-    photo: profile.profilePhoto || '',
-  }));
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex">
-      {/* Sidebar */}
-      <div
-        className={`${
-          sidebarOpen ? 'w-64' : 'w-0'
-        } bg-white shadow-lg transition-all duration-300 overflow-hidden flex flex-col`}
-      >
-        <div className="p-4 border-b">
-          <h2 className="text-lg font-bold text-gray-900">Wiadomości</h2>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          <ChatMenu chats={chats} />
-        </div>
-      </div>
-
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="bg-white shadow-md p-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
-              >
-                {sidebarOpen ? (
-                  <X className="w-6 h-6 text-gray-700" />
-                ) : (
-                  <Menu className="w-6 h-6 text-gray-700" />
-                )}
-              </button>
-              <div className="flex items-center gap-3">
-                {profile.profilePhoto ? (
-                  <img
-                    src={profile.profilePhoto}
-                    alt={profile.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 bg-amber-200 rounded-full flex items-center justify-center">
-                    <span className="text-lg font-bold text-white">{profile.name[0]}</span>
-                  </div>
-                )}
-                <div>
-                  <h2 className="font-semibold text-gray-900">{profile.name}</h2>
-                  <p className="text-sm text-gray-600">Online</p>
+    if (isNaN(matchId)) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-2xl font-bold text-red-600 mb-4">Invalid match ID</div>
+                    <button
+                        onClick={() => navigate('/matches')}
+                        className="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+                    >
+                        Back to Matches
+                    </button>
                 </div>
-              </div>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow hover:shadow-md transition"
-              >
-                <Home className="w-5 h-5" />
-                Strona główna
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow hover:shadow-md transition"
-              >
-                <LogOut className="w-5 h-5" />
-                Wyloguj się
-              </button>
-            </div>
-          </div>
-        </div>
+        );
+    }
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-4">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs rounded-2xl px-4 py-2 ${
-                    msg.sender === 'user'
-                      ? 'bg-amber-600 text-white'
-                      : 'bg-white text-gray-900 shadow'
-                  }`}
-                >
-                  <p>{msg.text}</p>
-                  <span className="text-xs opacity-70 mt-1 block">
-                    {msg.timestamp.toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
+    if (!match || !myProfile) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-2xl font-bold text-red-600 mb-4">Match not found</div>
+                    <button
+                        onClick={() => navigate('/matches')}
+                        className="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+                    >
+                        Back to Matches
+                    </button>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
+            </div>
+        );
+    }
 
-        {/* Input */}
-        <div className="bg-white shadow-md p-4 border-t">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Type a message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-600"
-            />
-            <button
-              onClick={handleSendMessage}
-              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition flex items-center gap-2"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
+    const user = match.matchedUser || {};
+    const name = user.name || 'Anonymous';
+    const photo = user.profilePhoto;
+    const occupation = user.occupation;
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex flex-col">
+            {/* Header */}
+            <div className="bg-white shadow p-4">
+                <div className="max-w-4xl mx-auto flex items-center gap-4">
+                    <button
+                        onClick={() => navigate('/matches')}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition"
+                    >
+                        <ArrowLeft className="w-6 h-6" />
+                    </button>
+
+                    {/* Match Profile */}
+                    <div className="flex items-center gap-3">
+                        {photo ? (
+                            <img
+                                src={photo}
+                                alt={name}
+                                className="w-12 h-12 rounded-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-12 h-12 bg-amber-200 rounded-full flex items-center justify-center">
+                <span className="text-lg font-bold text-white">
+                  {name[0] || 'U'}
+                </span>
+                            </div>
+                        )}
+                        <div>
+                            <h2 className="font-bold text-gray-900">{name}</h2>
+                            {occupation && (
+                                <p className="text-sm text-gray-600">{occupation}</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4">
+                <div className="max-w-4xl mx-auto space-y-4">
+                    {messages.length === 0 ? (
+                        <div className="text-center py-12">
+                            <p className="text-gray-600">Wyślij pierwszą wiadomość! 🍺</p>
+                        </div>
+                    ) : (
+                        messages.map((message) => {
+                            const isMe = message.senderId === myProfile.userId;
+                            return (
+                                <div
+                                    key={message.id}
+                                    className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                                >
+                                    <div
+                                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                                            isMe
+                                                ? 'bg-amber-600 text-white'
+                                                : 'bg-white text-gray-900'
+                                        }`}
+                                    >
+                                        <p>{message.content}</p>
+                                        <p
+                                            className={`text-xs mt-1 ${
+                                                isMe ? 'text-amber-200' : 'text-gray-500'
+                                            }`}
+                                        >
+                                            {formatTime(message.sentAt)}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+
+            {/* Input */}
+            <div className="bg-white border-t p-4">
+                <form onSubmit={handleSend} className="max-w-4xl mx-auto flex gap-2">
+                    <input
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Napisz wiadomość..."
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                    <button
+                        type="submit"
+                        disabled={!newMessage.trim() || sending}
+                        className="px-6 py-2 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition disabled:opacity-50 flex items-center gap-2"
+                    >
+                        <Send className="w-5 h-5" />
+                        <span>Wyślij</span>
+                    </button>
+                </form>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
