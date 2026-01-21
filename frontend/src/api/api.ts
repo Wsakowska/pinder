@@ -82,6 +82,40 @@ export const profileApi = {
         });
         if (!res.ok) throw new Error('Failed to fetch profiles');
         return res.json();
+    },
+
+    async uploadProfilePhoto(file: File): Promise<string> {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch(`${API_BASE}/users/profile/photo`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getToken()}`
+                // Don't set Content-Type - browser will set it with boundary
+            },
+            body: formData
+        });
+
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({ error: 'Failed to upload photo' }));
+            throw new Error(error.error || 'Failed to upload photo');
+        }
+
+        const data = await res.json();
+        return data.photoUrl;
+    },
+
+    async deleteProfilePhoto(): Promise<void> {
+        const res = await fetch(`${API_BASE}/users/profile/photo`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({ error: 'Failed to delete photo' }));
+            throw new Error(error.error || 'Failed to delete photo');
+        }
     }
 };
 
