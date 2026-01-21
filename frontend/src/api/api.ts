@@ -58,8 +58,26 @@ export const profileApi = {
         return res.json();
     },
 
-    async getProfiles(): Promise<Profile[]> {
-        const res = await fetch(`${API_BASE}/users/discover`, {
+    async getProfiles(minAge?: number, maxAge?: number, maxDistance?: number | null): Promise<Profile[]> {
+        // Build query parameters
+        const params = new URLSearchParams();
+
+        if (minAge !== undefined && minAge !== 18) {
+            params.append('minAge', minAge.toString());
+        }
+
+        if (maxAge !== undefined && maxAge !== 99) {
+            params.append('maxAge', maxAge.toString());
+        }
+
+        if (maxDistance !== null && maxDistance !== undefined) {
+            params.append('maxDistance', maxDistance.toString());
+        }
+
+        const queryString = params.toString();
+        const url = `${API_BASE}/users/discover${queryString ? `?${queryString}` : ''}`;
+
+        const res = await fetch(url, {
             headers: getHeaders()
         });
         if (!res.ok) throw new Error('Failed to fetch profiles');
@@ -116,6 +134,14 @@ export const messageApi = {
             body: JSON.stringify({ matchId, content })
         });
         if (!res.ok) throw new Error('Failed to send message');
+        return res.json();
+    },
+
+    async getUnreadCount(matchId: number): Promise<number> {
+        const res = await fetch(`${API_BASE}/messages/${matchId}/unread`, {
+            headers: getHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to fetch unread count');
         return res.json();
     }
 };
