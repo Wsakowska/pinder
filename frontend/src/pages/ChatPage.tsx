@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { matchApi, messageApi, profileApi } from '../api/api';
 import { Message, Match, Profile } from '../types/types';
 import { ArrowLeft, Send } from 'lucide-react';
-import { webSocketService, ChatMessage } from '../service/WebSocketService.ts';
+import { webSocketService, ChatMessage, TypingIndicator } from '../service/WebSocketService.ts';
 
 export default function ChatPage() {
     const { matchId: matchIdParam } = useParams<{ matchId: string }>();
@@ -14,7 +14,9 @@ export default function ChatPage() {
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const [wsConnected, setWsConnected] = useState(false);
+    const [otherUserTyping, setOtherUserTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const navigate = useNavigate();
 
     const matchId = matchIdParam ? parseInt(matchIdParam, 10) : NaN;
@@ -32,8 +34,8 @@ export default function ChatPage() {
         let isSubscribed = true;
 
         if (!isNaN(matchId)) {
-            loadData();
-            connectWebSocket();
+            // Load data FIRST, then connect WebSocket
+            loadDataAndConnect();
         } else {
             console.error('Invalid matchId:', matchIdParam);
             setLoading(false);
@@ -44,11 +46,45 @@ export default function ChatPage() {
             isSubscribed = false;
             if (!isNaN(matchId)) {
                 webSocketService.unsubscribeFromMatch(matchId);
+                webSocketService.unsubscribeFromTyping(matchId);
             }
         };
     }, [matchId]);
 
-    const connectWebSocket = async () => {
+    const loadDataAndConnect = async () => {
+        if (isNaN(matchId)) return;
+
+        try {
+            console.log('Loading chat for matchId:', matchId);
+
+            // Load profile FIRST
+            const profileData = await profileApi.getMyProfile();
+            console.log('My profile loaded:', profileData);
+            setMyProfile(profileData);
+
+            // Then load match and messages
+            const [matchData, messagesData] = await Promise.all([
+                matchApi.getMatch(matchId),
+                messageApi.getMessages(matchId)
+            ]);
+
+            console.log('Match data:', matchData);
+            console.log('Messages data:', messagesData);
+
+            setMatch(matchData);
+            setMessages(messagesData);
+            setLoading(false);
+
+            // NOW connect WebSocket with known userId
+            await connectWebSocketWithProfile(profileData);
+
+        } catch (err) {
+            console.error('Failed to load chat:', err);
+            setLoading(false);
+        }
+    };
+
+    const connectWebSocketWithProfile = async (profile: Profile) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -69,12 +105,12 @@ export default function ChatPage() {
 
                 // Convert ChatMessage to Message format
                 const newMsg: Message = {
-                    id: chatMessage.messageId,  // messageId -> id
+                    id: chatMessage.messageId,
                     matchId: chatMessage.matchId,
                     senderId: chatMessage.senderId,
                     senderName: chatMessage.senderName,
                     content: chatMessage.content,
-                    sentAt: chatMessage.timestamp,  // timestamp -> sentAt
+                    sentAt: chatMessage.timestamp,
                     read: false
                 };
 
@@ -86,6 +122,20 @@ export default function ChatPage() {
                     return [...prev, newMsg];
                 });
             });
+
+            // Subscribe to typing indicators - NOW profile is available
+            webSocketService.subscribeToTyping(matchId, (indicator: TypingIndicator) => {
+                console.log('Typing indicator received:', indicator);
+                console.log(`My userId: ${profile.userId}, Indicator userId: ${indicator.userId}`);
+
+                // Only show typing indicator if it's from the other user
+                if (indicator.userId !== profile.userId) {
+                    console.log(`✅ Showing typing indicator: ${indicator.userName} is ${indicator.isTyping ? 'typing' : 'stopped'}`);
+                    setOtherUserTyping(indicator.isTyping);
+                } else {
+                    console.log(`❌ Ignoring own typing indicator`);
+                }
+            });
         } catch (error) {
             console.error('Failed to connect WebSocket:', error);
             setWsConnected(false);
@@ -93,28 +143,8 @@ export default function ChatPage() {
     };
 
     const loadData = async () => {
-        if (isNaN(matchId)) return;
-
-        try {
-            console.log('Loading chat for matchId:', matchId);
-
-            const [matchData, messagesData, profileData] = await Promise.all([
-                matchApi.getMatch(matchId),
-                messageApi.getMessages(matchId),
-                profileApi.getMyProfile()
-            ]);
-
-            console.log('Match data:', matchData);
-            console.log('Messages data:', messagesData);
-
-            setMatch(matchData);
-            setMessages(messagesData);
-            setMyProfile(profileData);
-        } catch (err) {
-            console.error('Failed to load chat:', err);
-        } finally {
-            setLoading(false);
-        }
+        // This method is now replaced by loadDataAndConnect
+        // Keeping it for backward compatibility if needed
     };
 
     const handleSend = async (e: FormEvent) => {
@@ -122,6 +152,11 @@ export default function ChatPage() {
         if (!newMessage.trim() || isNaN(matchId) || sending || !myProfile) return;
 
         setSending(true);
+
+        // Stop typing indicator when sending
+        if (wsConnected && myProfile && match) {
+            webSocketService.sendTypingIndicator(matchId, myProfile.userId, myProfile.name, false);
+        }
 
         try {
             if (wsConnected && webSocketService.isConnected()) {
@@ -141,6 +176,26 @@ export default function ChatPage() {
             alert('Nie udało się wysłać wiadomości');
         } finally {
             setSending(false);
+        }
+    };
+
+    const handleInputChange = (value: string) => {
+        setNewMessage(value);
+
+        // Send typing indicator when user starts typing
+        if (wsConnected && myProfile && match) {
+            // Clear existing timeout
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+
+            // Send "typing" indicator
+            webSocketService.sendTypingIndicator(matchId, myProfile.userId, myProfile.name, true);
+
+            // Set timeout to send "stopped typing" after 2 seconds of inactivity
+            typingTimeoutRef.current = setTimeout(() => {
+                webSocketService.sendTypingIndicator(matchId, myProfile.userId, myProfile.name, false);
+            }, 2000);
         }
     };
 
@@ -329,11 +384,26 @@ export default function ChatPage() {
 
             {/* Input */}
             <div className="bg-white border-t p-4">
+                {/* Typing indicator */}
+                {otherUserTyping && match && (
+                    <div className="max-w-4xl mx-auto mb-2 px-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="font-medium">{match.matchedUser.name}</span>
+                            <span>pisze</span>
+                            <div className="flex gap-1">
+                                <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
+                                <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
+                                <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <form onSubmit={handleSend} className="max-w-4xl mx-auto flex gap-2">
                     <input
                         type="text"
                         value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                        onChange={(e) => handleInputChange(e.target.value)}
                         placeholder="Napisz wiadomość..."
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />

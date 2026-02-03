@@ -3,6 +3,7 @@ package com.beerfinder.controller;
 import com.beerfinder.dto.ChatMessage;
 import com.beerfinder.dto.MessageRequest;
 import com.beerfinder.dto.MessageResponse;
+import com.beerfinder.dto.TypingIndicator;
 import com.beerfinder.entity.User;
 import com.beerfinder.exception.BadRequestException;
 import com.beerfinder.exception.ResourceNotFoundException;
@@ -97,6 +98,44 @@ public class ChatWebSocketController {
 
         } catch (Exception e) {
             logger.error("Error processing WebSocket message: ", e);
+        }
+    }
+
+    /**
+     * Handle typing indicators
+     * Client sends: /app/typing/{matchId}
+     * Server broadcasts: /topic/matches/{matchId}/typing
+     */
+    @MessageMapping("/typing/{matchId}")
+    public void handleTyping(@DestinationVariable Long matchId, @Payload Map<String, Object> payload) {
+        try {
+            logger.info("Received typing indicator for match {}", matchId);
+
+            // Extract data from payload
+            Object userIdObj = payload.get("userId");
+            String userName = (String) payload.get("userName");
+            Object isTypingObj = payload.get("isTyping");
+
+            if (userIdObj == null || userName == null || isTypingObj == null) {
+                logger.warn("Invalid typing indicator payload");
+                return;
+            }
+
+            Long userId = ((Number) userIdObj).longValue();
+            Boolean isTyping = (Boolean) isTypingObj;
+
+            // Create typing indicator
+            TypingIndicator indicator = new TypingIndicator(matchId, userId, userName, isTyping);
+
+            // Broadcast to all subscribers of this match
+            String destination = "/topic/matches/" + matchId + "/typing";
+            messagingTemplate.convertAndSend(destination, indicator);
+
+            logger.info("Typing indicator broadcast to {}: user {} is {}",
+                    destination, userName, isTyping ? "typing" : "stopped typing");
+
+        } catch (Exception e) {
+            logger.error("Error handling typing indicator: ", e);
         }
     }
 
