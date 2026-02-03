@@ -12,7 +12,7 @@ import java.util.List;
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
 
-    @Query("SELECT m FROM Match m WHERE (m.user1 = :user OR m.user2 = :user) AND m.isActive = true")
+    @Query("SELECT m FROM Match m WHERE (m.user1 = :user OR m.user2 = :user) AND m.isActive = true ORDER BY m.createdAt DESC")
     List<Match> findActiveMatchesByUser(@Param("user") User user);
 
     Boolean existsByUser1AndUser2(User user1, User user2);
